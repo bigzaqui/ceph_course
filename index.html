@@ -3,111 +3,65 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ceph &amp; CephFS — Visual Architecture Explained</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>Ceph &amp; CephFS — Motion Canvas MP4 Course (3Blue1Brown Style)</title>
+  <link rel="stylesheet" href="styles.css?v=20" />
 </head>
 <body>
-  <div class="app-layout">
-    <!-- Top Header & 8-Scene Navigation -->
-    <header class="top-bar">
-      <div class="brand">
-        <div class="brand-mark"></div>
-        <span class="brand-title">Ceph Visualized</span>
-        <span class="brand-subtitle">RADOS • CRUSH • CephFS</span>
+  <div class="studio-shell">
+    <header class="studio-topbar">
+      <div class="brand-row">
+        <span class="mc-badge">Motion Canvas • MP4</span>
+        <span class="brand-title">Ceph &amp; CephFS Visualized — 3Blue1Brown Style Video Course</span>
       </div>
-      <nav id="scene-nav" class="scene-nav" aria-label="Scene navigation"></nav>
+      <div class="top-actions">
+        <button id="mode-full-btn" class="mode-btn active" title="Play single continuous 7m11s MP4">Full Course MP4 (7m 11s)</button>
+        <button id="mode-chapter-btn" class="mode-btn" title="Play individual scene-01.mp4 .. scene-08.mp4 files">Per-Scene MP4s (1–8)</button>
+        <button id="toggle-code-btn" class="mode-btn" title="Inspect Motion Canvas generator code">{ } Motion Canvas Code</button>
+        <a id="dl-scene-btn" class="dl-btn" href="videos/scene-01.mp4" download>⬇ Scene 1 MP4</a>
+        <a class="dl-btn primary" href="videos/ceph-course-full.mp4" download>⬇ Full Course MP4 (30 MB)</a>
+      </div>
     </header>
 
-    <!-- Main Geometric Stage -->
-    <main class="stage-wrapper">
-      <canvas id="stage-canvas"></canvas>
+    <aside class="studio-sidebar">
+      <div class="sidebar-heading">Course Chapters (8 Scenes • 40 Steps)</div>
+      <div id="chapter-list"></div>
+    </aside>
 
-      <!-- Synchronized Narration / Subtitle Box -->
-      <section class="caption-container" aria-live="polite">
-        <div class="caption-meta">
-          <span id="caption-scene-title">1. What Ceph Is</span>
-          <span id="caption-step-badge" class="caption-step-badge">Step 1/5</span>
+    <main class="studio-main">
+      <div class="video-stage">
+        <video
+          id="course-video"
+          src="videos/ceph-course-full.mp4"
+          controls
+          preload="metadata"
+          playsinline
+        ></video>
+      </div>
+
+      <div class="controls-bar">
+        <div id="steps-row" class="steps-row"></div>
+        <div class="transport-row">
+          <div class="transport-left">
+            <span id="status-label">Ready: videos/ceph-course-full.mp4 (1280×720 • 30 FPS • ElevenLabs Audio)</span>
+          </div>
+          <div class="transport-right">
+            <span>Speed:</span>
+            <button class="mode-btn" data-speed="0.75">0.75×</button>
+            <button class="mode-btn active" data-speed="1">1×</button>
+            <button class="mode-btn" data-speed="1.25">1.25×</button>
+            <button class="mode-btn" data-speed="1.5">1.5×</button>
+            <button class="mode-btn" data-speed="2">2×</button>
+          </div>
         </div>
-        <div id="caption-text" class="caption-text">
-          Loading Ceph architecture animation...
-        </div>
-      </section>
+      </div>
+
+      <div id="code-drawer" class="code-drawer">
+        <pre id="code-content"></pre>
+      </div>
     </main>
-
-    <!-- Bottom Timeline & Playback Controls -->
-    <footer class="control-bar">
-      <div class="timeline-row">
-        <span id="time-readout" class="time-readout">0:00 / 6:20</span>
-        <div id="scrubber-track" class="scrubber-track" title="Click or drag to seek">
-          <div id="scrubber-fill" class="scrubber-fill"></div>
-          <div id="scrubber-markers" class="scrubber-markers"></div>
-          <div id="scrubber-thumb" class="scrubber-thumb"></div>
-        </div>
-      </div>
-
-      <div class="controls-row">
-        <div class="btn-group">
-          <button id="btn-prev" class="ctrl-btn" title="Previous Scene">⏮ Prev</button>
-          <button id="btn-play" class="ctrl-btn primary" title="Play / Pause (Space)">⏸ Pause</button>
-          <button id="btn-next" class="ctrl-btn" title="Next Scene">Next ⏭</button>
-          <button id="btn-voice" class="ctrl-btn active-toggle" title="Toggle ElevenLabs AI Voiceover">🔊 ElevenLabs: ON</button>
-          <select id="voice-select" class="select-input" title="ElevenLabs Voice">
-            <option value="nPczCjzI2devNBz1zQrb" selected>Voice: Brian (Deep Narrator)</option>
-            <option value="onwK4e9ZLuTAKqWW03F9">Voice: Daniel (Clear Documentary)</option>
-            <option value="JBFqnCBsd6RMkjVDRZzb">Voice: George (Warm Educator)</option>
-            <option value="pNInz6obpgDQGcFmaJgB">Voice: Adam (Classic Narrator)</option>
-            <option value="Xb7hH8MSUJpSbSDYk0k2">Voice: Alice (Clear Female)</option>
-          </select>
-          <select id="speed-select" class="select-input" title="Playback Speed">
-            <option value="0.75">0.75× Speed</option>
-            <option value="1" selected>1.0× Speed</option>
-            <option value="1.25">1.25× Speed</option>
-            <option value="1.5">1.5× Speed</option>
-          </select>
-        </div>
-
-        <div class="kbd-hint">
-          <span id="el-status" style="color: #83c167; font-weight: 500;">ElevenLabs Ready</span>
-          <span><span class="kbd">Space</span> Play/Pause</span>
-          <span><span class="kbd">1</span>–<span class="kbd">8</span> Scene</span>
-          <button id="btn-vo-guide" class="ctrl-btn">🎙 ElevenLabs Settings</button>
-        </div>
-      </div>
-    </footer>
   </div>
 
-  <!-- Modal: ElevenLabs Voiceover Settings & Pre-Generation -->
-  <div id="vo-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h2>ElevenLabs Neural Voiceover Settings</h2>
-        <button id="btn-close-modal" class="ctrl-btn">✕ Close</button>
-      </div>
-      <div class="modal-body">
-        <p>
-          <strong>ElevenLabs API Integration is Active!</strong><br />
-          The player streams neural voiceover directly from ElevenLabs (<code>eleven_multilingual_v2</code>), prefetches upcoming segments so transitions are seamless, and caches generated audio in your browser's <code>IndexedDB</code> (plus disk cache when running via <code>serve.py</code>).
-        </p>
-        <p>
-          <strong>API Key:</strong>
-        </p>
-        <div style="display:flex; gap:8px; margin-bottom:14px;">
-          <input id="el-api-key-input" type="password" class="select-input" style="flex:1; font-family:monospace;" value="" placeholder="Optional: sk_... (Pre-generated Brian voice is built-in!)" />
-          <button id="btn-save-key" class="ctrl-btn primary">Save Key</button>
-        </div>
-        <p>
-          <strong>Pre-Cache Entire 8-Scene Course:</strong><br />
-          Click below to pre-generate and cache all 40 narration segments in the background, or run <code>python3 generate_elevenlabs.py</code> on the server to save permanent <code>.mp3</code> files into <code>/opt/argon/audio/</code>.
-        </p>
-        <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
-          <button id="btn-precache-all" class="ctrl-btn primary">⚡ Pre-Generate All 8 Scenes Now</button>
-          <span id="precache-progress" style="font-size:13px; color:#58c4dd; font-family:monospace;"></span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="narration.js?v=4"></script>
-  <script src="app.js?v=4"></script>
+  <script src="course-data.js?v=20"></script>
+  <script src="video-player.js?v=20"></script>
 </body>
 </html>

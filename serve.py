@@ -1,58 +1,80 @@
 #!/usr/bin/env python3
 """
-Local network web server for the Ceph & CephFS Visual Animation.
-Binds to 0.0.0.0:8080, serves static files, caches ElevenLabs MP3s to /opt/argon/audio/,
-and pre-generates any missing ElevenLabs segments in a background thread on startup.
+Multi-threaded local network web server for the Ceph & CephFS Motion Canvas MP4 Course.
+Supports HTTP Range (206 Partial Content) for instant MP4 video seeking.
+Binds to 0.0.0.0:8080 so any device on the private LAN can access it.
 """
 import http.server
-import socketserver
-import threading
-import urllib.parse
 import os
-
-from generate_elevenlabs import synthesize_all
+import re
+import urllib.parse
 
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("PORT", "8080"))
 WEB_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-class CephAnimationHandler(http.server.SimpleHTTPRequestHandler):
+class RangeHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=WEB_DIR, **kwargs)
 
     def end_headers(self):
-        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.send_header("Accept-Ranges", "bytes")
         self.send_header("Access-Control-Allow-Origin", "*")
         super().end_headers()
 
-    def do_POST(self):
-        parsed = urllib.parse.urlparse(self.path)
-        if parsed.path == "/api/save-audio":
-            qs = urllib.parse.parse_qs(parsed.query)
-            rel_file = qs.get("file", [""])[0]
-            # Only allow saving inside audio/seg-*.mp3
-            if rel_file.startswith("audio/seg-") and rel_file.endswith(".mp3") and ".." not in rel_file:
-                length = int(self.headers.get("Content-Length", "0"))
-                if 1000 < length < 10_000_000:
-                    data = self.rfile.read(length)
-                    dest = os.path.join(WEB_DIR, rel_file)
-                    os.makedirs(os.path.dirname(dest), exist_ok=True)
-                    with open(dest, "wb") as f:
-                        f.write(data)
-                    self.send_response(200)
-                    self.end_headers()
-                    self.wfile.write(b"OK")
-                    return
-        self.send_response(400)
-        self.end_headers()
+    def do_GET(self):
+        range_header = self.headers.get("Range")
+        if not range_header:
+            return super().do_GET()
+
+        path = self.translate_path(self.path)
+        if not os.path.isfile(path):
+            return super().do_GET()
+
+        file_size = os.path.getsize(path)
+        m = re.match(r"bytes=(\d*)-(\d*)", range_header)
+        if not m:
+            return super().do_GET()
+
+        start_str, end_str = m.groups()
+        start = int(start_str) if start_str else 0
+        end = int(end_str) if end_str else file_size - 1
+        end = min(end, file_size - 1)
+
+        if start > end or start >= file_size:
+            self.send_error(416, "Requested Range Not Satisfiable")
+            return
+
+        length = end - start + 1
+        ctype = self.guess_type(path)
+
+        try:
+            with open(path, "rb") as f:
+                f.seek(start)
+                self.send_response(206, "Partial Content")
+                self.send_header("Content-type", ctype)
+                self.send_header("Content-Range", f"bytes {start}-{end}/{file_size}")
+                self.send_header("Content-Length", str(length))
+                self.end_headers()
+
+                remaining = length
+                chunk_size = 64 * 1024
+                while remaining > 0:
+                    data = f.read(min(chunk_size, remaining))
+                    if not data:
+                        break
+                    self.wfile.write(data)
+                    remaining -= len(data)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+
+class ReusableThreadingHTTPServer(http.server.ThreadingHTTPServer):
+    allow_reuse_address = True
 
 
 if __name__ == "__main__":
-    # Start background ElevenLabs pre-generation into /opt/argon/audio/
-    threading.Thread(target=synthesize_all, kwargs={"quiet": False}, daemon=True).start()
-
-    socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer((HOST, PORT), CephAnimationHandler) as httpd:
-        print(f"Serving Ceph Visualized at http://{HOST}:{PORT} (LAN: http://192.168.1.20:{PORT})")
+    with ReusableThreadingHTTPServer((HOST, PORT), RangeHTTPRequestHandler) as httpd:
+        print(f"Serving Ceph Motion Canvas MP4 Course at http://{HOST}:{PORT} (LAN: http://192.168.1.20:{PORT})", flush=True)
         httpd.serve_forever()
